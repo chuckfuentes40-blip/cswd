@@ -20,7 +20,9 @@ import {
   Check, 
   XCircle,
   Plus,
-  Eye
+  Eye,
+  ShieldCheck,
+  UserPlus
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -58,6 +60,13 @@ interface Announcement {
   created_at: string;
 }
 
+interface AdminUser {
+  id: number;
+  username: string;
+  type_of_client: string;
+  created_at?: string;
+}
+
 export default function CSWDApp() {
   const [isMounted, setIsMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("HOME");
@@ -82,13 +91,19 @@ export default function CSWDApp() {
   // Data State
   const [applications, setApplications] = useState<Application[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
 
   // Announcement Form State
   const [annTitle, setAnnTitle] = useState("");
   const [annContent, setAnnContent] = useState("");
   const [annImage, setAnnImage] = useState("");
 
-  // Public Solo Parent Form State - Matching All 20 Database Columns
+  // New Admin Account Form State
+  const [newAdminUsername, setNewAdminUsername] = useState("");
+  const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [newAdminType, setNewAdminType] = useState("Solo Parent Admin");
+
+  // Public Solo Parent Form State
   const initialFormState = {
     member_name: "",
     sex: "Female",
@@ -123,9 +138,7 @@ export default function CSWDApp() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (data) {
-      setApplications(data);
-    }
+    if (data) setApplications(data);
   };
 
   const fetchAnnouncements = async () => {
@@ -134,20 +147,37 @@ export default function CSWDApp() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (data) {
-      setAnnouncements(data);
-    }
+    if (data) setAnnouncements(data);
+  };
+
+  const fetchAdminUsers = async () => {
+    const { data } = await supabase
+      .from("admin_users")
+      .select("id, username, type_of_client, created_at")
+      .order("id", { ascending: true });
+
+    if (data) setAdminUsers(data);
   };
 
   useEffect(() => {
     setIsMounted(true);
     fetchApplications();
     fetchAnnouncements();
+
+    // Session Persistence via localStorage
+    const storedIsLoggedIn = localStorage.getItem("cswd_isLoggedIn");
+    const storedAdminType = localStorage.getItem("cswd_adminType");
+    if (storedIsLoggedIn === "true" && storedAdminType) {
+      setIsLoggedIn(true);
+      setAdminType(storedAdminType);
+      if (storedAdminType === "Super Admin") {
+        fetchAdminUsers();
+      }
+    }
   }, []);
 
   if (!isMounted) return null;
 
-  // Handle Form Change
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -158,6 +188,30 @@ export default function CSWDApp() {
     setLoginError("");
     setLoading(true);
 
+    // Master Super Admin Fallback Credentials
+    if (usernameInput === "superadmin" && passwordInput === "admin123") {
+      setLoading(false);
+      setIsLoggedIn(true);
+      setAdminType("Super Admin");
+      setAdminActiveTab("MANAGE_ADMINS");
+      localStorage.setItem("cswd_isLoggedIn", "true");
+      localStorage.setItem("cswd_adminType", "Super Admin");
+      fetchAdminUsers();
+      return;
+    }
+
+    // Default Solo Parent Admin Credentials
+    if (usernameInput === "admin" && passwordInput === "admin123") {
+      setLoading(false);
+      setIsLoggedIn(true);
+      setAdminType("Solo Parent Admin");
+      setAdminActiveTab("HOME");
+      localStorage.setItem("cswd_isLoggedIn", "true");
+      localStorage.setItem("cswd_adminType", "Solo Parent Admin");
+      return;
+    }
+
+    // Database lookup for registered admins
     const { data, error } = await supabase
       .from("admin_users")
       .select("*")
@@ -170,21 +224,66 @@ export default function CSWDApp() {
     if (data && !error) {
       setIsLoggedIn(true);
       setAdminType(data.type_of_client);
-      setAdminActiveTab("HOME");
-    } else if (usernameInput === "admin" && passwordInput === "admin123") {
-      setIsLoggedIn(true);
-      setAdminType("Solo Parent Admin");
-      setAdminActiveTab("HOME");
+      setAdminActiveTab(data.type_of_client === "Super Admin" ? "MANAGE_ADMINS" : "HOME");
+      localStorage.setItem("cswd_isLoggedIn", "true");
+      localStorage.setItem("cswd_adminType", data.type_of_client);
+
+      if (data.type_of_client === "Super Admin") {
+        fetchAdminUsers();
+      }
     } else {
-      setLoginError("Invalid credentials or unauthorized user type.");
+      setLoginError("Invalid username or password.");
     }
   };
 
+  // Handle Logout
   const handleLogout = () => {
     setIsLoggedIn(false);
     setAdminType(null);
     setActiveTab("HOME");
     setSidebarOpen(false);
+    localStorage.removeItem("cswd_isLoggedIn");
+    localStorage.removeItem("cswd_adminType");
+  };
+
+  // Super Admin: Create New Admin Account
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminUsername || !newAdminPassword) return;
+
+    setLoading(true);
+    const { error } = await supabase
+      .from("admin_users")
+      .insert([{ 
+        username: newAdminUsername, 
+        password: newAdminPassword, 
+        type_of_client: newAdminType 
+      }]);
+
+    setLoading(false);
+
+    if (!error) {
+      alert("New Admin Account created successfully!");
+      setNewAdminUsername("");
+      setNewAdminPassword("");
+      setNewAdminType("Solo Parent Admin");
+      fetchAdminUsers();
+    } else {
+      alert("Error creating admin account: " + error.message);
+    }
+  };
+
+  // Super Admin: Delete Admin Account
+  const handleDeleteAdmin = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this Admin account?")) return;
+
+    const { error } = await supabase.from("admin_users").delete().eq("id", id);
+    if (!error) {
+      alert("Admin account deleted.");
+      fetchAdminUsers();
+    } else {
+      alert("Error deleting admin account: " + error.message);
+    }
   };
 
   // Submit Public Form
@@ -267,16 +366,16 @@ export default function CSWDApp() {
   const pendingApplications = applications.filter(a => a.status === "Pending");
 
   // =========================================================================
-  // ADMIN DASHBOARD VIEW
+  // ADMIN DASHBOARD VIEW (Solo Parent Admin & Super Admin)
   // =========================================================================
-  if (isLoggedIn && adminType === "Solo Parent Admin") {
+  if (isLoggedIn && (adminType === "Solo Parent Admin" || adminType === "Super Admin")) {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col font-sans relative">
         
         {/* Printable Card Area */}
         {printRowData && (
           <div className="hidden print:block p-8 bg-white text-black">
-            <h1 className="text-2xl font-bold border-b pb-2 mb-4">CSWD Biñan City - Solo Parent Record</h1>
+            <h1 className="text-2xl font-bold border-b pb-2 mb-4">CSWD Biñan City - Record Printable Card</h1>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <p><strong>Member Name:</strong> {printRowData.member_name}</p>
               <p><strong>Sex:</strong> {printRowData.sex}</p>
@@ -420,10 +519,10 @@ export default function CSWDApp() {
             </button>
             <div className="flex items-center space-x-2">
               <img src={cswdLogo} alt="CSWD" className="h-9 w-auto rounded-full bg-white p-0.5" />
-              <span className="font-bold text-lg hidden sm:inline">Solo Parent Admin Portal</span>
+              <span className="font-bold text-lg hidden sm:inline">CSWD Management Portal</span>
             </div>
           </div>
-          <span className="bg-yellow-500 text-blue-950 font-semibold text-xs px-3 py-1 rounded-full">
+          <span className={`font-semibold text-xs px-3 py-1 rounded-full ${adminType === "Super Admin" ? "bg-purple-500 text-white" : "bg-yellow-500 text-blue-950"}`}>
             {adminType}
           </span>
         </header>
@@ -444,12 +543,23 @@ export default function CSWDApp() {
             <div className="p-4 space-y-2">
               <p className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-4">Navigation</p>
               
+              {/* SUPER ADMIN EXCLUSIVE TAB */}
+              {adminType === "Super Admin" && (
+                <button 
+                  onClick={() => { setAdminActiveTab("MANAGE_ADMINS"); setSidebarOpen(false); }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${adminActiveTab === "MANAGE_ADMINS" ? "bg-purple-800 text-white" : "hover:bg-blue-900 text-purple-200"}`}
+                >
+                  <ShieldCheck className="w-5 h-5" />
+                  <span>Admin Management</span>
+                </button>
+              )}
+
               <button 
                 onClick={() => { setAdminActiveTab("HOME"); setSidebarOpen(false); }}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${adminActiveTab === "HOME" ? "bg-blue-800 text-white" : "hover:bg-blue-900 text-gray-300"}`}
               >
                 <HomeIcon className="w-5 h-5" />
-                <span>Home</span>
+                <span>Dashboard Overview</span>
               </button>
 
               <button 
@@ -497,7 +607,125 @@ export default function CSWDApp() {
 
           <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
             
-            {/* ADMIN TAB 1: HOME */}
+            {/* SUPER ADMIN DASHBOARD: ADMIN MANAGEMENT */}
+            {adminActiveTab === "MANAGE_ADMINS" && adminType === "Super Admin" && (
+              <div className="space-y-6">
+                
+                {/* Create Admin Account Section */}
+                <div className="bg-white p-6 rounded-xl shadow border border-purple-100">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <UserPlus className="w-6 h-6 text-purple-700" />
+                    <h2 className="text-2xl font-bold text-blue-950">Create New Admin Account</h2>
+                  </div>
+
+                  <form onSubmit={handleCreateAdmin} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Username *</label>
+                      <input 
+                        type="text" 
+                        required 
+                        value={newAdminUsername} 
+                        onChange={(e) => setNewAdminUsername(e.target.value)} 
+                        className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500" 
+                        placeholder="e.g. sp_admin1" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Password *</label>
+                      <input 
+                        type="password" 
+                        required 
+                        value={newAdminPassword} 
+                        onChange={(e) => setNewAdminPassword(e.target.value)} 
+                        className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500" 
+                        placeholder="••••••••" 
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Admin Role / Department *</label>
+                      <select 
+                        value={newAdminType} 
+                        onChange={(e) => setNewAdminType(e.target.value)} 
+                        className="w-full p-2.5 border rounded-lg text-sm bg-white focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="Solo Parent Admin">Solo Parent Admin</option>
+                        <option value="PWD Admin">PWD Admin</option>
+                        <option value="Senior Citizen Admin">Senior Citizen Admin</option>
+                        <option value="Super Admin">Super Admin</option>
+                      </select>
+                    </div>
+
+                    <button 
+                      type="submit" 
+                      disabled={loading} 
+                      className="bg-purple-700 hover:bg-purple-800 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center space-x-2 transition"
+                    >
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                      <span>Add Admin</span>
+                    </button>
+                  </form>
+                </div>
+
+                {/* Registered Admins List */}
+                <div className="bg-white p-6 rounded-xl shadow border space-y-4">
+                  <div className="flex justify-between items-center border-b pb-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-blue-950">Active Admin Accounts</h3>
+                      <p className="text-xs text-gray-500">Manage access levels and delete outdated accounts.</p>
+                    </div>
+                    <span className="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">
+                      Total Admins: {adminUsers.length}
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto rounded-lg border">
+                    <table className="w-full text-left text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-blue-950 text-white">
+                          <th className="p-3 border-b">ID</th>
+                          <th className="p-3 border-b">Username</th>
+                          <th className="p-3 border-b">Role / Sector</th>
+                          <th className="p-3 border-b text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminUsers.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="p-6 text-center text-gray-500">No registered admins found.</td>
+                          </tr>
+                        ) : (
+                          adminUsers.map((user) => (
+                            <tr key={user.id} className="border-b hover:bg-gray-50">
+                              <td className="p-3 font-semibold text-gray-500">#{user.id}</td>
+                              <td className="p-3 font-bold text-gray-900">{user.username}</td>
+                              <td className="p-3">
+                                <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${user.type_of_client === "Super Admin" ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>
+                                  {user.type_of_client}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <button 
+                                  onClick={() => handleDeleteAdmin(user.id)}
+                                  className="inline-flex items-center space-x-1 bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded transition"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>Delete</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
+            {/* ADMIN TAB 1: HOME OVERVIEW */}
             {adminActiveTab === "HOME" && (
               <div className="space-y-6 bg-white p-6 rounded-xl shadow border">
                 <div className="text-center border-b pb-4">
@@ -868,7 +1096,7 @@ export default function CSWDApp() {
           </div>
         )}
 
-        {/* FULL PUBLIC SOLO PARENTS FORM (All 20 DB Fields) */}
+        {/* PUBLIC SOLO PARENTS FORM */}
         {activeTab === "FORMS" && selectedForm === "Solo Parents" && (
           <div className="space-y-6 py-2">
             <div className="border-b pb-3">
@@ -1048,8 +1276,8 @@ export default function CSWDApp() {
                   required 
                   value={usernameInput} 
                   onChange={(e) => setUsernameInput(e.target.value)} 
-                  className="mt-1 w-full p-2.5 border rounded-md" 
-                  placeholder="admin" 
+                  className="mt-1 w-full p-2.5 border rounded-md text-sm" 
+                  placeholder="admin or superadmin" 
                 />
               </div>
 
@@ -1060,7 +1288,7 @@ export default function CSWDApp() {
                   required 
                   value={passwordInput} 
                   onChange={(e) => setPasswordInput(e.target.value)} 
-                  className="mt-1 w-full p-2.5 border rounded-md" 
+                  className="mt-1 w-full p-2.5 border rounded-md text-sm" 
                   placeholder="••••••••" 
                 />
               </div>
@@ -1068,7 +1296,7 @@ export default function CSWDApp() {
               <button 
                 type="submit" 
                 disabled={loading}
-                className="w-full bg-blue-900 hover:bg-blue-950 text-white py-2.5 rounded-md font-bold transition flex justify-center items-center"
+                className="w-full bg-blue-900 hover:bg-blue-950 text-white py-2.5 rounded-md font-bold transition flex justify-center items-center text-sm"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In to Admin Portal"}
               </button>
