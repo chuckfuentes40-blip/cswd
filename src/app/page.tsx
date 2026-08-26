@@ -21,8 +21,10 @@ import {
   XCircle,
   Plus,
   Eye,
+  EyeOff,
   ShieldCheck,
-  UserPlus
+  UserPlus,
+  AlertCircle
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -67,26 +69,36 @@ interface AdminUser {
   created_at?: string;
 }
 
+type NotificationType = {
+  type: "loading" | "success" | "error";
+  msg: string;
+} | null;
+
 export default function CSWDApp() {
   const [isMounted, setIsMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("HOME");
   const [selectedForm, setSelectedForm] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
   
   // Auth & Admin State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminType, setAdminType] = useState<string | null>(null);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
-  const [loginError, setLoginError] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   
   // Admin Navigation & Layout State
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminActiveTab, setAdminActiveTab] = useState("HOME");
   const [printRowData, setPrintRowData] = useState<Application | null>(null);
   const [viewingApp, setViewingApp] = useState<Application | null>(null);
+
+  // Process Notifications
+  const [loginNotification, setLoginNotification] = useState<NotificationType>(null);
+  const [createAdminNotification, setCreateAdminNotification] = useState<NotificationType>(null);
+  const [appSubmissionNotification, setAppSubmissionNotification] = useState<NotificationType>(null);
+  const [announcementNotification, setAnnouncementNotification] = useState<NotificationType>(null);
 
   // Data State
   const [applications, setApplications] = useState<Application[]>([]);
@@ -101,6 +113,7 @@ export default function CSWDApp() {
   // New Admin Account Form State
   const [newAdminUsername, setNewAdminUsername] = useState("");
   const [newAdminPassword, setNewAdminPassword] = useState("");
+  const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
   const [newAdminType, setNewAdminType] = useState("Solo Parent Admin");
 
   // Public Solo Parent Form State
@@ -164,7 +177,6 @@ export default function CSWDApp() {
     fetchApplications();
     fetchAnnouncements();
 
-    // Session Persistence via localStorage
     const storedIsLoggedIn = localStorage.getItem("cswd_isLoggedIn");
     const storedAdminType = localStorage.getItem("cswd_adminType");
     if (storedIsLoggedIn === "true" && storedAdminType) {
@@ -185,54 +197,63 @@ export default function CSWDApp() {
   // Handle Login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError("");
+    setLoginNotification({ type: "loading", msg: "Verifying administrative credentials..." });
     setLoading(true);
 
-    // Master Super Admin Fallback Credentials
+    // Master Super Admin Fallback
     if (usernameInput === "superadmin" && passwordInput === "admin123") {
       setLoading(false);
-      setIsLoggedIn(true);
-      setAdminType("Super Admin");
-      setAdminActiveTab("MANAGE_ADMINS");
-      localStorage.setItem("cswd_isLoggedIn", "true");
-      localStorage.setItem("cswd_adminType", "Super Admin");
-      fetchAdminUsers();
+      setLoginNotification({ type: "success", msg: "Login successful! Redirecting to Super Admin Dashboard..." });
+      setTimeout(() => {
+        setIsLoggedIn(true);
+        setAdminType("Super Admin");
+        setAdminActiveTab("MANAGE_ADMINS");
+        localStorage.setItem("cswd_isLoggedIn", "true");
+        localStorage.setItem("cswd_adminType", "Super Admin");
+        fetchAdminUsers();
+      }, 800);
       return;
     }
 
-    // Default Solo Parent Admin Credentials
+    // Default Solo Parent Admin Fallback
     if (usernameInput === "admin" && passwordInput === "admin123") {
       setLoading(false);
-      setIsLoggedIn(true);
-      setAdminType("Solo Parent Admin");
-      setAdminActiveTab("HOME");
-      localStorage.setItem("cswd_isLoggedIn", "true");
-      localStorage.setItem("cswd_adminType", "Solo Parent Admin");
+      setLoginNotification({ type: "success", msg: "Login successful! Welcome back." });
+      setTimeout(() => {
+        setIsLoggedIn(true);
+        setAdminType("Solo Parent Admin");
+        setAdminActiveTab("HOME");
+        localStorage.setItem("cswd_isLoggedIn", "true");
+        localStorage.setItem("cswd_adminType", "Solo Parent Admin");
+      }, 800);
       return;
     }
 
-    // Database lookup for registered admins
+    // Database lookup
     const { data, error } = await supabase
       .from("admin_users")
       .select("*")
       .eq("username", usernameInput)
       .eq("password", passwordInput)
-      .single();
+      .maybeSingle();
 
     setLoading(false);
 
     if (data && !error) {
-      setIsLoggedIn(true);
-      setAdminType(data.type_of_client);
-      setAdminActiveTab(data.type_of_client === "Super Admin" ? "MANAGE_ADMINS" : "HOME");
-      localStorage.setItem("cswd_isLoggedIn", "true");
-      localStorage.setItem("cswd_adminType", data.type_of_client);
+      setLoginNotification({ type: "success", msg: "Login verified! Opening admin portal..." });
+      setTimeout(() => {
+        setIsLoggedIn(true);
+        setAdminType(data.type_of_client);
+        setAdminActiveTab(data.type_of_client === "Super Admin" ? "MANAGE_ADMINS" : "HOME");
+        localStorage.setItem("cswd_isLoggedIn", "true");
+        localStorage.setItem("cswd_adminType", data.type_of_client);
 
-      if (data.type_of_client === "Super Admin") {
-        fetchAdminUsers();
-      }
+        if (data.type_of_client === "Super Admin") {
+          fetchAdminUsers();
+        }
+      }, 800);
     } else {
-      setLoginError("Invalid username or password.");
+      setLoginNotification({ type: "error", msg: "Invalid username or password. Please try again." });
     }
   };
 
@@ -242,6 +263,7 @@ export default function CSWDApp() {
     setAdminType(null);
     setActiveTab("HOME");
     setSidebarOpen(false);
+    setLoginNotification(null);
     localStorage.removeItem("cswd_isLoggedIn");
     localStorage.removeItem("cswd_adminType");
   };
@@ -251,7 +273,9 @@ export default function CSWDApp() {
     e.preventDefault();
     if (!newAdminUsername || !newAdminPassword) return;
 
+    setCreateAdminNotification({ type: "loading", msg: "Creating new admin account..." });
     setLoading(true);
+
     const { error } = await supabase
       .from("admin_users")
       .insert([{ 
@@ -263,13 +287,13 @@ export default function CSWDApp() {
     setLoading(false);
 
     if (!error) {
-      alert("New Admin Account created successfully!");
+      setCreateAdminNotification({ type: "success", msg: `Admin user '${newAdminUsername}' created successfully!` });
       setNewAdminUsername("");
       setNewAdminPassword("");
       setNewAdminType("Solo Parent Admin");
       fetchAdminUsers();
     } else {
-      alert("Error creating admin account: " + error.message);
+      setCreateAdminNotification({ type: "error", msg: "Failed to create account: " + error.message });
     }
   };
 
@@ -279,18 +303,18 @@ export default function CSWDApp() {
 
     const { error } = await supabase.from("admin_users").delete().eq("id", id);
     if (!error) {
-      alert("Admin account deleted.");
+      setCreateAdminNotification({ type: "success", msg: "Admin account removed from system." });
       fetchAdminUsers();
     } else {
-      alert("Error deleting admin account: " + error.message);
+      setCreateAdminNotification({ type: "error", msg: "Error deleting account: " + error.message });
     }
   };
 
   // Submit Public Form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAppSubmissionNotification({ type: "loading", msg: "Submitting application details to database..." });
     setLoading(true);
-    setSuccessMsg("");
 
     const payload = { ...formData, status: "Pending" };
     const { error } = await supabase.from("applications").insert([payload]);
@@ -298,9 +322,9 @@ export default function CSWDApp() {
     setLoading(false);
 
     if (error) {
-      alert("Submission error: " + error.message);
+      setAppSubmissionNotification({ type: "error", msg: "Submission error: " + error.message });
     } else {
-      setSuccessMsg("Application submitted successfully! It is currently pending admin approval.");
+      setAppSubmissionNotification({ type: "success", msg: "Application submitted successfully! It is currently pending admin approval." });
       fetchApplications();
       setFormData(initialFormState);
     }
@@ -336,7 +360,9 @@ export default function CSWDApp() {
     e.preventDefault();
     if (!annTitle || !annContent) return;
 
+    setAnnouncementNotification({ type: "loading", msg: "Publishing announcement to portal..." });
     setLoading(true);
+
     const { error } = await supabase.from("announcements").insert([
       { title: annTitle, content: annContent, image_url: annImage }
     ]);
@@ -344,13 +370,13 @@ export default function CSWDApp() {
     setLoading(false);
 
     if (!error) {
+      setAnnouncementNotification({ type: "success", msg: "Announcement published successfully!" });
       setAnnTitle("");
       setAnnContent("");
       setAnnImage("");
       fetchAnnouncements();
-      alert("Announcement posted successfully!");
     } else {
-      alert("Error posting announcement: " + error.message);
+      setAnnouncementNotification({ type: "error", msg: "Error publishing announcement: " + error.message });
     }
   };
 
@@ -365,8 +391,25 @@ export default function CSWDApp() {
   const approvedApplications = applications.filter(a => a.status === "Approved" || !a.status);
   const pendingApplications = applications.filter(a => a.status === "Pending");
 
+  // Reusable Notification Banner Component
+  const NotificationBanner = ({ data }: { data: NotificationType }) => {
+    if (!data) return null;
+    return (
+      <div className={`p-3 mb-4 rounded-lg flex items-center space-x-2 text-xs font-semibold ${
+        data.type === "loading" ? "bg-blue-50 text-blue-800 border border-blue-200" :
+        data.type === "success" ? "bg-emerald-50 text-emerald-800 border border-emerald-200" :
+        "bg-rose-50 text-rose-800 border border-rose-200"
+      }`}>
+        {data.type === "loading" && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
+        {data.type === "success" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+        {data.type === "error" && <XCircle className="w-4 h-4 text-rose-600" />}
+        <span>{data.msg}</span>
+      </div>
+    );
+  };
+
   // =========================================================================
-  // ADMIN DASHBOARD VIEW (Solo Parent Admin & Super Admin)
+  // ADMIN DASHBOARD VIEW
   // =========================================================================
   if (isLoggedIn && (adminType === "Solo Parent Admin" || adminType === "Super Admin")) {
     return (
@@ -543,7 +586,6 @@ export default function CSWDApp() {
             <div className="p-4 space-y-2">
               <p className="text-xs font-semibold text-blue-300 uppercase tracking-wider mb-4">Navigation</p>
               
-              {/* SUPER ADMIN EXCLUSIVE TAB */}
               {adminType === "Super Admin" && (
                 <button 
                   onClick={() => { setAdminActiveTab("MANAGE_ADMINS"); setSidebarOpen(false); }}
@@ -611,12 +653,13 @@ export default function CSWDApp() {
             {adminActiveTab === "MANAGE_ADMINS" && adminType === "Super Admin" && (
               <div className="space-y-6">
                 
-                {/* Create Admin Account Section */}
                 <div className="bg-white p-6 rounded-xl shadow border border-purple-100">
                   <div className="flex items-center space-x-3 mb-4">
                     <UserPlus className="w-6 h-6 text-purple-700" />
                     <h2 className="text-2xl font-bold text-blue-950">Create New Admin Account</h2>
                   </div>
+
+                  <NotificationBanner data={createAdminNotification} />
 
                   <form onSubmit={handleCreateAdmin} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
@@ -633,18 +676,27 @@ export default function CSWDApp() {
 
                     <div>
                       <label className="block text-xs font-bold text-gray-700 mb-1">Password *</label>
-                      <input 
-                        type="password" 
-                        required 
-                        value={newAdminPassword} 
-                        onChange={(e) => setNewAdminPassword(e.target.value)} 
-                        className="w-full p-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500" 
-                        placeholder="••••••••" 
-                      />
+                      <div className="relative">
+                        <input 
+                          type={showNewAdminPassword ? "text" : "password"} 
+                          required 
+                          value={newAdminPassword} 
+                          onChange={(e) => setNewAdminPassword(e.target.value)} 
+                          className="w-full p-2.5 pr-10 border rounded-lg text-sm focus:ring-2 focus:ring-purple-500" 
+                          placeholder="••••••••" 
+                        />
+                        <button 
+                          type="button" 
+                          onClick={() => setShowNewAdminPassword(!showNewAdminPassword)} 
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                        >
+                          {showNewAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Admin Role / Department *</label>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Admin Role / Sector *</label>
                       <select 
                         value={newAdminType} 
                         onChange={(e) => setNewAdminType(e.target.value)} 
@@ -663,17 +715,16 @@ export default function CSWDApp() {
                       className="bg-purple-700 hover:bg-purple-800 text-white font-bold py-2.5 px-4 rounded-lg flex items-center justify-center space-x-2 transition"
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                      <span>Add Admin</span>
+                      <span>{loading ? "Creating..." : "Add Admin"}</span>
                     </button>
                   </form>
                 </div>
 
-                {/* Registered Admins List */}
                 <div className="bg-white p-6 rounded-xl shadow border space-y-4">
                   <div className="flex justify-between items-center border-b pb-4">
                     <div>
                       <h3 className="text-xl font-bold text-blue-950">Active Admin Accounts</h3>
-                      <p className="text-xs text-gray-500">Manage access levels and delete outdated accounts.</p>
+                      <p className="text-xs text-gray-500">Manage access levels and remove outdated accounts.</p>
                     </div>
                     <span className="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">
                       Total Admins: {adminUsers.length}
@@ -860,6 +911,9 @@ export default function CSWDApp() {
               <div className="space-y-6">
                 <div className="bg-white p-6 rounded-xl shadow border">
                   <h2 className="text-2xl font-bold text-blue-950 mb-4">Post New Announcement</h2>
+                  
+                  <NotificationBanner data={announcementNotification} />
+
                   <form onSubmit={handlePostAnnouncement} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">Announcement Title *</label>
@@ -899,7 +953,7 @@ export default function CSWDApp() {
                       className="bg-blue-900 hover:bg-blue-950 text-white font-bold px-6 py-2.5 rounded-lg flex items-center space-x-2 transition"
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                      <span>Post Announcement</span>
+                      <span>{loading ? "Publishing..." : "Post Announcement"}</span>
                     </button>
                   </form>
                 </div>
@@ -1104,16 +1158,11 @@ export default function CSWDApp() {
               <p className="text-sm text-gray-600">Please complete all fields accurately according to your official documents.</p>
             </div>
 
-            {successMsg && (
-              <div className="p-4 bg-green-50 text-green-800 rounded-md flex items-center space-x-2 border border-green-200">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                <span>{successMsg}</span>
-              </div>
-            )}
+            <NotificationBanner data={appSubmissionNotification} />
 
             <form onSubmit={handleSubmit} className="space-y-8">
               
-              {/* Section 1: Personal Information */}
+              {/* Section 1: Personal Details */}
               <div>
                 <h3 className="font-bold text-md text-blue-900 uppercase tracking-wide mb-3 border-b pb-1">1. Personal Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1143,7 +1192,7 @@ export default function CSWDApp() {
                 </div>
               </div>
 
-              {/* Section 2: Classification & Socioeconomic Profile */}
+              {/* Section 2: Classification & Work Profile */}
               <div>
                 <h3 className="font-bold text-md text-blue-900 uppercase tracking-wide mb-3 border-b pb-1">2. Classification & Work Profile</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1246,8 +1295,9 @@ export default function CSWDApp() {
                 </div>
               </div>
 
-              <button type="submit" disabled={loading} className="w-full bg-blue-900 text-white py-3 rounded-lg hover:bg-blue-950 transition flex justify-center items-center font-bold text-md shadow">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Complete Application"}
+              <button type="submit" disabled={loading} className="w-full bg-blue-900 hover:bg-blue-950 text-white py-3 rounded-lg transition flex justify-center items-center font-bold text-md shadow">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                <span>{loading ? "Submitting Application..." : "Submit Complete Application"}</span>
               </button>
             </form>
           </div>
@@ -1262,11 +1312,7 @@ export default function CSWDApp() {
               <p className="text-sm text-gray-600">Access portal depending on client type.</p>
             </div>
 
-            {loginError && (
-              <div className="p-3 mb-4 bg-red-50 text-red-700 text-sm rounded-md border border-red-200">
-                {loginError}
-              </div>
-            )}
+            <NotificationBanner data={loginNotification} />
 
             <form onSubmit={handleLogin} className="space-y-4 bg-white p-6 rounded-xl border shadow-sm">
               <div>
@@ -1283,14 +1329,23 @@ export default function CSWDApp() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">Password</label>
-                <input 
-                  type="password" 
-                  required 
-                  value={passwordInput} 
-                  onChange={(e) => setPasswordInput(e.target.value)} 
-                  className="mt-1 w-full p-2.5 border rounded-md text-sm" 
-                  placeholder="••••••••" 
-                />
+                <div className="relative">
+                  <input 
+                    type={showLoginPassword ? "text" : "password"} 
+                    required 
+                    value={passwordInput} 
+                    onChange={(e) => setPasswordInput(e.target.value)} 
+                    className="mt-1 w-full p-2.5 pr-10 border rounded-md text-sm" 
+                    placeholder="••••••••" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowLoginPassword(!showLoginPassword)} 
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button 
@@ -1298,7 +1353,8 @@ export default function CSWDApp() {
                 disabled={loading}
                 className="w-full bg-blue-900 hover:bg-blue-950 text-white py-2.5 rounded-md font-bold transition flex justify-center items-center text-sm"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In to Admin Portal"}
+                {loading ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+                <span>{loading ? "Authenticating..." : "Sign In to Admin Portal"}</span>
               </button>
             </form>
           </div>
