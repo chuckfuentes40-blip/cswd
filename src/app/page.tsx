@@ -425,30 +425,178 @@ export default function CSWDApp() {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col font-sans relative">
         
-        {/* Printable Card Area */}
+        {/* Printable Official Form Template */}
         {printRowData && (
-          <div className="hidden print:block p-8 bg-white text-black">
-            <h1 className="text-2xl font-bold border-b pb-2 mb-4">CSWD Biñan City - Record Printable Card</h1>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <p><strong>Member Name:</strong> {printRowData.member_name}</p>
-              <p><strong>Sex:</strong> {printRowData.sex}</p>
-              <p><strong>Age:</strong> {printRowData.age}</p>
-              <p><strong>Contact:</strong> {printRowData.contact_number}</p>
-              <p><strong>Address:</strong> {printRowData.address}</p>
-              <p><strong>Classification:</strong> {printRowData.classification}</p>
-              <p><strong>Source of Income:</strong> {printRowData.source_of_income}</p>
-              <p><strong>No. of Dependents:</strong> {printRowData.no_of_dependents}</p>
-              <p><strong>Member Disability:</strong> {printRowData.member_disability} {printRowData.member_disability_type ? `(${printRowData.member_disability_type})` : ''}</p>
-              <p><strong>Dependent Disability:</strong> {printRowData.dependent_disability} {printRowData.dependent_disability_type ? `(${printRowData.dependent_disability_type})` : ''}</p>
-              <p><strong>ID Number:</strong> {printRowData.id_number || "N/A"}</p>
-              <p><strong>ID Expiration:</strong> {printRowData.id_expiration_date || "N/A"}</p>
-              <p><strong>Cash Subsidy Recipient:</strong> {printRowData.cash_subsidy_recipient}</p>
-              <p><strong>INB Recipient:</strong> {printRowData.inb_recipient}</p>
-              <p><strong>4Ps Recipient:</strong> {printRowData.four_ps_recipient}</p>
-              <p><strong>Rice Subsidy Recipient:</strong> {printRowData.rice_subsidy_recipient}</p>
-              <p><strong>Skill Set:</strong> {printRowData.skill_set || "N/A"}</p>
-              <p><strong>Remarks:</strong> {printRowData.remarks || "N/A"}</p>
+          <div className="hidden print:block p-8 bg-white text-black font-sans max-w-4xl mx-auto border-2 border-gray-900">
+            
+            {/* Header with City Seal & CSWD Logo */}
+            <div className="flex items-center justify-between border-b-2 border-gray-900 pb-4 mb-6">
+              <img 
+                src="/Binan_City_Seal.png" 
+                alt="Biñan City Seal" 
+                className="w-20 h-20 object-contain" 
+              />
+              <div className="text-center space-y-0.5">
+                <p className="text-[11px] uppercase font-semibold tracking-wider text-gray-800">Republic of the Philippines</p>
+                <p className="text-[11px] uppercase font-semibold tracking-wider text-gray-800">Province of Laguna</p>
+                <p className="text-sm font-bold uppercase tracking-wide text-gray-900">City of Biñan</p>
+                <h1 className="text-base font-black text-blue-950 uppercase tracking-wide mt-1">
+                  City Social Welfare & Development Office
+                </h1>
+                <p className="text-[11px] font-bold text-gray-800 uppercase tracking-widest bg-gray-100 py-0.5 px-3 rounded inline-block mt-1 border border-gray-400">
+                  Solo Parent Intake & Information Sheet
+                </p>
+              </div>
+              <img 
+                src={cswdLogo} 
+                alt="CSWD Logo" 
+                className="w-20 h-20 object-contain" 
+              />
             </div>
+
+            {/* Metadata Bar */}
+            <div className="flex justify-between items-center text-xs mb-4 bg-gray-50 p-2 border border-gray-400">
+              <div><strong>Control / ID No:</strong> {printRowData.id_number || "N/A"}</div>
+              <div>
+                <strong>Date Registered:</strong>{" "}
+                {printRowData.created_at ? new Date(printRowData.created_at).toLocaleDateString() : new Date().toLocaleDateString()}
+              </div>
+              <div><strong>Status:</strong> <span className="uppercase font-bold">{printRowData.status || "Approved"}</span></div>
+            </div>
+
+            {/* Form Sections */}
+            <div className="space-y-4 text-xs">
+              
+              {/* Section 1: Personal Profile */}
+              <div className="border border-gray-900">
+                <div className="bg-gray-200 px-3 py-1 font-bold text-gray-900 border-b border-gray-900 uppercase tracking-wider">
+                  1. Personal Profile
+                </div>
+                <div className="p-3 grid grid-cols-12 gap-3">
+                  <div className="col-span-6">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Full Member Name</span>
+                    <span className="font-bold text-sm text-gray-900">{printRowData.member_name}</span>
+                  </div>
+                  <div className="col-span-3">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Sex</span>
+                    <span className="font-semibold text-gray-800">{printRowData.sex}</span>
+                  </div>
+                  <div className="col-span-3">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Age</span>
+                    <span className="font-semibold text-gray-800">{printRowData.age || "N/A"}</span>
+                  </div>
+                  <div className="col-span-8">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Address</span>
+                    <span className="font-semibold text-gray-800">{printRowData.address || "N/A"}</span>
+                  </div>
+                  <div className="col-span-4">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Contact Number</span>
+                    <span className="font-semibold text-gray-800">{printRowData.contact_number}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Socio-Economic Profile */}
+              <div className="border border-gray-900">
+                <div className="bg-gray-200 px-3 py-1 font-bold text-gray-900 border-b border-gray-900 uppercase tracking-wider">
+                  2. Socio-Economic Profile
+                </div>
+                <div className="p-3 grid grid-cols-12 gap-3">
+                  <div className="col-span-6">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Classification</span>
+                    <span className="font-semibold text-gray-800">{printRowData.classification || "N/A"}</span>
+                  </div>
+                  <div className="col-span-3">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Source of Income</span>
+                    <span className="font-semibold text-gray-800">{printRowData.source_of_income || "N/A"}</span>
+                  </div>
+                  <div className="col-span-3">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">No. of Dependents</span>
+                    <span className="font-semibold text-gray-800">{printRowData.no_of_dependents}</span>
+                  </div>
+                  <div className="col-span-12">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Skill Set / Special Qualifications</span>
+                    <span className="font-semibold text-gray-800">{printRowData.skill_set || "N/A"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Disability Information */}
+              <div className="border border-gray-900">
+                <div className="bg-gray-200 px-3 py-1 font-bold text-gray-900 border-b border-gray-900 uppercase tracking-wider">
+                  3. Disability Information
+                </div>
+                <div className="p-3 grid grid-cols-12 gap-3">
+                  <div className="col-span-6">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Member Disability</span>
+                    <span className="font-semibold text-gray-800">
+                      {printRowData.member_disability} {printRowData.member_disability_type ? `(${printRowData.member_disability_type})` : ""}
+                    </span>
+                  </div>
+                  <div className="col-span-6">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Dependent Disability</span>
+                    <span className="font-semibold text-gray-800">
+                      {printRowData.dependent_disability} {printRowData.dependent_disability_type ? `(${printRowData.dependent_disability_type})` : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Assistance & Benefits */}
+              <div className="border border-gray-900">
+                <div className="bg-gray-200 px-3 py-1 font-bold text-gray-900 border-b border-gray-900 uppercase tracking-wider">
+                  4. Identification & Assistance Subsidies
+                </div>
+                <div className="p-3 grid grid-cols-12 gap-3">
+                  <div className="col-span-6">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Solo Parent ID Number</span>
+                    <span className="font-semibold text-gray-800">{printRowData.id_number || "N/A"}</span>
+                  </div>
+                  <div className="col-span-6">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">ID Expiration Date</span>
+                    <span className="font-semibold text-gray-800">{printRowData.id_expiration_date || "N/A"}</span>
+                  </div>
+                  <div className="col-span-3">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Cash Subsidy</span>
+                    <span className="font-semibold text-gray-800">{printRowData.cash_subsidy_recipient}</span>
+                  </div>
+                  <div className="col-span-3">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">INB Beneficiary</span>
+                    <span className="font-semibold text-gray-800">{printRowData.inb_recipient}</span>
+                  </div>
+                  <div className="col-span-3">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">4Ps Beneficiary</span>
+                    <span className="font-semibold text-gray-800">{printRowData.four_ps_recipient}</span>
+                  </div>
+                  <div className="col-span-3">
+                    <span className="text-gray-600 block text-[10px] uppercase font-bold">Rice Subsidy</span>
+                    <span className="font-semibold text-gray-800">{printRowData.rice_subsidy_recipient}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5: Remarks */}
+              <div className="border border-gray-900 p-3">
+                <span className="text-gray-600 block text-[10px] uppercase font-bold">Remarks / Operational Notes</span>
+                <span className="font-semibold text-gray-800">{printRowData.remarks || "No additional notes specified."}</span>
+              </div>
+
+            </div>
+
+            {/* Signatures Block */}
+            <div className="mt-12 pt-4 grid grid-cols-2 gap-12 text-center text-xs">
+              <div>
+                <div className="border-b border-gray-900 mb-1 pb-8"></div>
+                <p className="font-bold uppercase text-gray-900">Prepared / Processed By</p>
+                <p className="text-[10px] text-gray-600">CSWD Registered Social Worker</p>
+              </div>
+              <div>
+                <div className="border-b border-gray-900 mb-1 pb-8"></div>
+                <p className="font-bold uppercase text-gray-900">Approved By</p>
+                <p className="text-[10px] text-gray-600">City Social Welfare & Development Officer</p>
+              </div>
+            </div>
+
           </div>
         )}
 
