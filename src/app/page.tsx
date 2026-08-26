@@ -1,4 +1,5 @@
 "use client";
+
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
@@ -85,8 +86,8 @@ export default function CSWDApp() {
   const [annContent, setAnnContent] = useState("");
   const [annImage, setAnnImage] = useState("");
 
-  // Public Solo Parent Form State
-  const [formData, setFormData] = useState({
+  // Public Solo Parent Form State - Matching All 20 Database Columns
+  const initialFormState = {
     member_name: "",
     sex: "Female",
     age: "",
@@ -107,7 +108,9 @@ export default function CSWDApp() {
     rice_subsidy_recipient: "No",
     skill_set: "",
     remarks: "",
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
 
   const bgSeal = "https://raw.githubusercontent.com/chuckfuentes40-blip/BinanCity-CSWD/main/Binan_City_Seal.png";
   const cswdLogo = "https://raw.githubusercontent.com/chuckfuentes40-blip/BinanCity-CSWD/main/cswd.png";
@@ -142,13 +145,17 @@ export default function CSWDApp() {
 
   if (!isMounted) return null;
 
+  // Handle Form Change
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
   // Handle Login
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError("");
     setLoading(true);
 
-    // Query admin_users table or mock authentication check
     const { data, error } = await supabase
       .from("admin_users")
       .select("*")
@@ -163,7 +170,6 @@ export default function CSWDApp() {
       setAdminType(data.type_of_client);
       setAdminActiveTab("HOME");
     } else if (usernameInput === "admin" && passwordInput === "admin123") {
-      // Fallback demo account
       setIsLoggedIn(true);
       setAdminType("Solo Parent Admin");
       setAdminActiveTab("HOME");
@@ -195,28 +201,7 @@ export default function CSWDApp() {
     } else {
       setSuccessMsg("Application submitted successfully! It is currently pending admin approval.");
       fetchApplications();
-      setFormData({
-        member_name: "",
-        sex: "Female",
-        age: "",
-        address: "",
-        contact_number: "",
-        classification: "Death of Spouse",
-        source_of_income: "",
-        no_of_dependents: "1",
-        member_disability: "No",
-        member_disability_type: "",
-        dependent_disability: "No",
-        dependent_disability_type: "",
-        id_number: "",
-        id_expiration_date: "",
-        cash_subsidy_recipient: "No",
-        inb_recipient: "No",
-        four_ps_recipient: "No",
-        rice_subsidy_recipient: "No",
-        skill_set: "",
-        remarks: "",
-      });
+      setFormData(initialFormState);
     }
   };
 
@@ -280,13 +265,13 @@ export default function CSWDApp() {
   const pendingApplications = applications.filter(a => a.status === "Pending");
 
   // =========================================================================
-  // ADMIN DASHBOARD VIEW (When logged in as Solo Parent Admin)
+  // ADMIN DASHBOARD VIEW
   // =========================================================================
   if (isLoggedIn && adminType === "Solo Parent Admin") {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
         
-        {/* Printable Area for Single Row */}
+        {/* Printable Card Area */}
         {printRowData && (
           <div className="hidden print:block p-8 bg-white text-black">
             <h1 className="text-2xl font-bold border-b pb-2 mb-4">CSWD Biñan City - Solo Parent Record</h1>
@@ -299,10 +284,16 @@ export default function CSWDApp() {
               <p><strong>Classification:</strong> {printRowData.classification}</p>
               <p><strong>Source of Income:</strong> {printRowData.source_of_income}</p>
               <p><strong>No. of Dependents:</strong> {printRowData.no_of_dependents}</p>
-              <p><strong>ID Number:</strong> {printRowData.id_number}</p>
-              <p><strong>4Ps Recipient:</strong> {printRowData.four_ps_recipient}</p>
+              <p><strong>Member Disability:</strong> {printRowData.member_disability} {printRowData.member_disability_type ? `(${printRowData.member_disability_type})` : ''}</p>
+              <p><strong>Dependent Disability:</strong> {printRowData.dependent_disability} {printRowData.dependent_disability_type ? `(${printRowData.dependent_disability_type})` : ''}</p>
+              <p><strong>ID Number:</strong> {printRowData.id_number || "N/A"}</p>
+              <p><strong>ID Expiration:</strong> {printRowData.id_expiration_date || "N/A"}</p>
               <p><strong>Cash Subsidy Recipient:</strong> {printRowData.cash_subsidy_recipient}</p>
-              <p><strong>Skill Set:</strong> {printRowData.skill_set}</p>
+              <p><strong>INB Recipient:</strong> {printRowData.inb_recipient}</p>
+              <p><strong>4Ps Recipient:</strong> {printRowData.four_ps_recipient}</p>
+              <p><strong>Rice Subsidy Recipient:</strong> {printRowData.rice_subsidy_recipient}</p>
+              <p><strong>Skill Set:</strong> {printRowData.skill_set || "N/A"}</p>
+              <p><strong>Remarks:</strong> {printRowData.remarks || "N/A"}</p>
             </div>
           </div>
         )}
@@ -327,8 +318,6 @@ export default function CSWDApp() {
         </header>
 
         <div className="flex flex-1 relative print:hidden">
-          
-          {/* Overlay for mobile drawer */}
           {sidebarOpen && (
             <div 
               className="fixed inset-0 bg-black/50 z-20 md:hidden" 
@@ -336,7 +325,7 @@ export default function CSWDApp() {
             />
           )}
 
-          {/* Responsive Side Navbar */}
+          {/* Side Navbar */}
           <aside className={`
             fixed md:static inset-y-0 left-0 z-30 w-64 bg-blue-950 text-white flex flex-col justify-between transition-transform duration-300 transform
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:hidden"}
@@ -384,7 +373,6 @@ export default function CSWDApp() {
               </button>
             </div>
 
-            {/* Logout Button at bottom */}
             <div className="p-4 border-t border-blue-900">
               <button 
                 onClick={handleLogout}
@@ -396,10 +384,9 @@ export default function CSWDApp() {
             </div>
           </aside>
 
-          {/* Main Content View */}
           <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
             
-            {/* ADMIN TAB 1: HOME (Dashboard Statistics & Table) */}
+            {/* ADMIN TAB 1: HOME */}
             {adminActiveTab === "HOME" && (
               <div className="space-y-6 bg-white p-6 rounded-xl shadow border">
                 <div className="text-center border-b pb-4">
@@ -466,7 +453,7 @@ export default function CSWDApp() {
               </div>
             )}
 
-            {/* ADMIN TAB 2: SOLO PARENTS DATA (With Print & Delete Actions) */}
+            {/* ADMIN TAB 2: SOLO PARENTS DATA */}
             {adminActiveTab === "DATA" && (
               <div className="bg-white p-6 rounded-xl shadow border space-y-4">
                 <div className="flex justify-between items-center border-b pb-4">
@@ -672,7 +659,6 @@ export default function CSWDApp() {
       className="min-h-screen bg-cover bg-center bg-fixed flex flex-col font-sans text-gray-800"
       style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), url('${bgSeal}')` }}
     >
-      {/* Top Navbar */}
       <nav className="bg-blue-900 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20">
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab("HOME")}>
@@ -723,10 +709,9 @@ export default function CSWDApp() {
         </div>
       </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-grow max-w-6xl mx-auto w-full p-6 my-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-md border border-gray-100">
+      <main className="flex-grow max-w-5xl mx-auto w-full p-6 my-8 bg-white/95 backdrop-blur-sm rounded-xl shadow-md border border-gray-100">
         
-        {/* PUBLIC HOME TAB (Announcements & Portal Info) */}
+        {/* PUBLIC HOME TAB */}
         {activeTab === "HOME" && (
           <div className="space-y-6">
             <div className="text-center py-6 border-b">
@@ -734,7 +719,6 @@ export default function CSWDApp() {
               <p className="text-gray-600 mt-2">Connecting Biñanenses with social welfare services, assistance, and community support.</p>
             </div>
 
-            {/* Public Announcements Section */}
             <div className="space-y-4">
               <h3 className="text-xl font-bold text-blue-900 flex items-center space-x-2">
                 <Megaphone className="w-5 h-5 text-yellow-600" />
@@ -766,12 +750,12 @@ export default function CSWDApp() {
           </div>
         )}
 
-        {/* PUBLIC FORM REGISTRATION */}
+        {/* FULL PUBLIC SOLO PARENTS FORM (All 20 DB Fields) */}
         {activeTab === "FORMS" && selectedForm === "Solo Parents" && (
           <div className="space-y-6 py-2">
             <div className="border-b pb-3">
-              <h2 className="text-2xl font-bold text-blue-900">Solo Parent Application Form</h2>
-              <p className="text-sm text-gray-600">Please complete all required details for verification.</p>
+              <h2 className="text-2xl font-bold text-blue-900">Solo Parent Registration Form</h2>
+              <p className="text-sm text-gray-600">Please complete all fields accurately according to your official documents.</p>
             </div>
 
             {successMsg && (
@@ -781,89 +765,155 @@ export default function CSWDApp() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-8">
               
-              {/* 1. Personal Details */}
+              {/* Section 1: Personal Information */}
               <div>
-                <h3 className="font-semibold text-lg text-blue-950 mb-3 border-b pb-1">1. Personal Information</h3>
+                <h3 className="font-bold text-md text-blue-900 uppercase tracking-wide mb-3 border-b pb-1">1. Personal Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium">Member Full Name *</label>
-                    <input type="text" name="member_name" required value={formData.member_name} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md" placeholder="Dela Cruz, Juanita" />
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Member Full Name *</label>
+                    <input type="text" name="member_name" required value={formData.member_name} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="e.g. Santos, Maria Clara" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Sex *</label>
-                    <select name="sex" value={formData.sex} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Sex *</label>
+                    <select name="sex" value={formData.sex} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm bg-white">
                       <option value="Female">Female</option>
                       <option value="Male">Male</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Age</label>
-                    <input type="text" name="age" value={formData.age} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md" placeholder="32" />
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Age</label>
+                    <input type="text" name="age" value={formData.age} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="e.g. 34" />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium">Address</label>
-                    <input type="text" name="address" value={formData.address} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md" placeholder="Barangay Zapote, Biñan City, Laguna" />
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Address</label>
+                    <input type="text" name="address" value={formData.address} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="Barangay, House No., Street" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Contact Number *</label>
-                    <input type="text" name="contact_number" required value={formData.contact_number} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md" placeholder="09123456789" />
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Contact Number *</label>
+                    <input type="text" name="contact_number" required value={formData.contact_number} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="09123456789" />
                   </div>
                 </div>
               </div>
 
-              {/* 2. Classification & Income */}
+              {/* Section 2: Classification & Socioeconomic Profile */}
               <div>
-                <h3 className="font-semibold text-lg text-blue-950 mb-3 border-b pb-1">2. Classification & Income</h3>
+                <h3 className="font-bold text-md text-blue-900 uppercase tracking-wide mb-3 border-b pb-1">2. Classification & Work Profile</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium">Classification</label>
-                    <input type="text" name="classification" value={formData.classification} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md" placeholder="Death of Spouse" />
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Classification</label>
+                    <input type="text" name="classification" value={formData.classification} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="e.g. Death of Spouse" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Source of Income</label>
-                    <input type="text" name="source_of_income" value={formData.source_of_income} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md" placeholder="Employed / Business" />
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Source of Income</label>
+                    <input type="text" name="source_of_income" value={formData.source_of_income} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="e.g. Employed / Micro-business" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">No. of Dependents</label>
-                    <input type="text" name="no_of_dependents" value={formData.no_of_dependents} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md" placeholder="2" />
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">No. of Dependents</label>
+                    <input type="text" name="no_of_dependents" value={formData.no_of_dependents} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="1" />
+                  </div>
+                  <div className="md:col-span-3">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Skill Set</label>
+                    <input type="text" name="skill_set" value={formData.skill_set} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="e.g. Tailoring, Cooking, Computer Literacy" />
                   </div>
                 </div>
               </div>
 
-              {/* 3. Disability Details */}
+              {/* Section 3: Disability Information */}
               <div>
-                <h3 className="font-semibold text-lg text-blue-950 mb-3 border-b pb-1">3. Disability Information</h3>
+                <h3 className="font-bold text-md text-blue-900 uppercase tracking-wide mb-3 border-b pb-1">3. Disability Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium">Member Disability?</label>
-                    <select name="member_disability" value={formData.member_disability} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Member Disability?</label>
+                    <select name="member_disability" value={formData.member_disability} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm bg-white">
                       <option value="No">No</option>
                       <option value="Yes">Yes</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium">Member Disability Type</label>
-                    <input type="text" name="member_disability_type" value={formData.member_disability_type} onChange={(e) => setFormData({ ...formData, [e.target.name]: e.target.value })} className="mt-1 w-full p-2 border rounded-md" placeholder="Specify if yes" />
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Member Disability Type</label>
+                    <input type="text" name="member_disability_type" value={formData.member_disability_type} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="Specify if Member Disability is Yes" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Dependent Disability?</label>
+                    <select name="dependent_disability" value={formData.dependent_disability} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm bg-white">
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Dependent Disability Type</label>
+                    <input type="text" name="dependent_disability_type" value={formData.dependent_disability_type} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="Specify if Dependent Disability is Yes" />
                   </div>
                 </div>
               </div>
 
-              <button type="submit" disabled={loading} className="w-full bg-blue-900 text-white py-3 rounded-md hover:bg-blue-950 transition flex justify-center items-center font-bold">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Application Form"}
+              {/* Section 4: Government IDs & Program Subsidies */}
+              <div>
+                <h3 className="font-bold text-md text-blue-900 uppercase tracking-wide mb-3 border-b pb-1">4. ID Details & Assistance Subsidies</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">ID Number</label>
+                    <input type="text" name="id_number" value={formData.id_number} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="e.g. SP-2024-0012" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">ID Expiration Date</label>
+                    <input type="text" name="id_expiration_date" value={formData.id_expiration_date} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="YYYY-MM-DD" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Cash Subsidy Recipient?</label>
+                    <select name="cash_subsidy_recipient" value={formData.cash_subsidy_recipient} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm bg-white">
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">INB Recipient?</label>
+                    <select name="inb_recipient" value={formData.inb_recipient} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm bg-white">
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">4Ps Beneficiary?</label>
+                    <select name="four_ps_recipient" value={formData.four_ps_recipient} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm bg-white">
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Rice Subsidy Recipient?</label>
+                    <select name="rice_subsidy_recipient" value={formData.rice_subsidy_recipient} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm bg-white">
+                      <option value="No">No</option>
+                      <option value="Yes">Yes</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5: Additional Remarks */}
+              <div>
+                <h3 className="font-bold text-md text-blue-900 uppercase tracking-wide mb-3 border-b pb-1">5. Remarks</h3>
+                <div>
+                  <textarea name="remarks" rows={2} value={formData.remarks} onChange={handleChange} className="w-full p-2.5 border rounded-lg text-sm" placeholder="Any additional notes or comments..." />
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-900 text-white py-3 rounded-lg hover:bg-blue-950 transition flex justify-center items-center font-bold text-md shadow">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Submit Complete Application"}
               </button>
             </form>
           </div>
         )}
 
-        {/* ADMIN LOGIN PAGE */}
+        {/* LOGIN TAB */}
         {activeTab === "LOGIN" && (
           <div className="max-w-md mx-auto py-8">
             <div className="text-center mb-6">
               <Lock className="w-12 h-12 text-blue-900 mx-auto mb-2" />
               <h2 className="text-2xl font-bold text-blue-950">CSWD Admin Login</h2>
-              <p className="text-sm text-gray-600">Access dashboard based on client role.</p>
+              <p className="text-sm text-gray-600">Access portal depending on client type.</p>
             </div>
 
             {loginError && (
