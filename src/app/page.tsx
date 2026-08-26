@@ -19,7 +19,8 @@ import {
   Lock, 
   Check, 
   XCircle,
-  Plus
+  Plus,
+  Eye
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -76,6 +77,7 @@ export default function CSWDApp() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminActiveTab, setAdminActiveTab] = useState("HOME");
   const [printRowData, setPrintRowData] = useState<Application | null>(null);
+  const [viewingApp, setViewingApp] = useState<Application | null>(null);
 
   // Data State
   const [applications, setApplications] = useState<Application[]>([]);
@@ -269,7 +271,7 @@ export default function CSWDApp() {
   // =========================================================================
   if (isLoggedIn && adminType === "Solo Parent Admin") {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
+      <div className="min-h-screen bg-gray-100 flex flex-col font-sans relative">
         
         {/* Printable Card Area */}
         {printRowData && (
@@ -294,6 +296,115 @@ export default function CSWDApp() {
               <p><strong>Rice Subsidy Recipient:</strong> {printRowData.rice_subsidy_recipient}</p>
               <p><strong>Skill Set:</strong> {printRowData.skill_set || "N/A"}</p>
               <p><strong>Remarks:</strong> {printRowData.remarks || "N/A"}</p>
+            </div>
+          </div>
+        )}
+
+        {/* View Details Modal Pop-up */}
+        {viewingApp && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+              <div className="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 className="text-xl font-bold text-blue-950">Application Details</h3>
+                <button 
+                  onClick={() => setViewingApp(null)}
+                  className="p-1 hover:bg-gray-100 rounded-lg text-gray-500 transition"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Member Name</span>
+                  <span className="font-bold text-gray-900">{viewingApp.member_name}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Sex / Age</span>
+                  <span className="text-gray-900">{viewingApp.sex} ({viewingApp.age || "N/A"} yrs old)</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border sm:col-span-2">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Address</span>
+                  <span className="text-gray-900">{viewingApp.address || "N/A"}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Contact Number</span>
+                  <span className="text-gray-900">{viewingApp.contact_number}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Classification</span>
+                  <span className="text-gray-900">{viewingApp.classification || "N/A"}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Source of Income</span>
+                  <span className="text-gray-900">{viewingApp.source_of_income || "N/A"}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">No. of Dependents</span>
+                  <span className="text-gray-900">{viewingApp.no_of_dependents}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border sm:col-span-2">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Skill Set</span>
+                  <span className="text-gray-900">{viewingApp.skill_set || "N/A"}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Member Disability</span>
+                  <span className="text-gray-900">{viewingApp.member_disability} {viewingApp.member_disability_type ? `(${viewingApp.member_disability_type})` : ''}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Dependent Disability</span>
+                  <span className="text-gray-900">{viewingApp.dependent_disability} {viewingApp.dependent_disability_type ? `(${viewingApp.dependent_disability_type})` : ''}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">ID Number</span>
+                  <span className="text-gray-900">{viewingApp.id_number || "N/A"}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">ID Expiration Date</span>
+                  <span className="text-gray-900">{viewingApp.id_expiration_date || "N/A"}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Cash Subsidy Recipient</span>
+                  <span className="text-gray-900">{viewingApp.cash_subsidy_recipient}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">INB Recipient</span>
+                  <span className="text-gray-900">{viewingApp.inb_recipient}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">4Ps Beneficiary</span>
+                  <span className="text-gray-900">{viewingApp.four_ps_recipient}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Rice Subsidy Recipient</span>
+                  <span className="text-gray-900">{viewingApp.rice_subsidy_recipient}</span>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg border sm:col-span-2">
+                  <span className="text-xs text-gray-500 font-semibold uppercase block mb-1">Remarks</span>
+                  <span className="text-gray-900">{viewingApp.remarks || "N/A"}</span>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap justify-end gap-2 pt-3 border-t">
+                <button 
+                  onClick={() => { handleUpdateStatus(viewingApp.id, "Disapproved"); setViewingApp(null); }}
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs px-4 py-2 rounded-md font-semibold transition"
+                >
+                  Disapprove Form
+                </button>
+                <button 
+                  onClick={() => { handleUpdateStatus(viewingApp.id, "Approved"); setViewingApp(null); }}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-4 py-2 rounded-md font-semibold transition"
+                >
+                  Approve Form
+                </button>
+                <button 
+                  onClick={() => setViewingApp(null)}
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs px-4 py-2 rounded-md font-semibold transition"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -622,17 +733,24 @@ export default function CSWDApp() {
                             <td className="p-3 text-gray-700">{app.no_of_dependents}</td>
                             <td className="p-3 text-center space-x-2">
                               <button 
-                                onClick={() => handleUpdateStatus(app.id, "Approved")}
-                                className="inline-flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded font-semibold transition"
+                                onClick={() => setViewingApp(app)}
+                                className="inline-flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white text-xs px-2.5 py-1.5 rounded font-semibold transition"
                               >
-                                <Check className="w-4 h-4" />
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View</span>
+                              </button>
+                              <button 
+                                onClick={() => handleUpdateStatus(app.id, "Approved")}
+                                className="inline-flex items-center space-x-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded font-semibold transition"
+                              >
+                                <Check className="w-3.5 h-3.5" />
                                 <span>Approve</span>
                               </button>
                               <button 
                                 onClick={() => handleUpdateStatus(app.id, "Disapproved")}
-                                className="inline-flex items-center space-x-1 bg-rose-600 hover:bg-rose-700 text-white text-xs px-3 py-1.5 rounded font-semibold transition"
+                                className="inline-flex items-center space-x-1 bg-rose-600 hover:bg-rose-700 text-white text-xs px-2.5 py-1.5 rounded font-semibold transition"
                               >
-                                <XCircle className="w-4 h-4" />
+                                <XCircle className="w-3.5 h-3.5" />
                                 <span>Disapprove</span>
                               </button>
                             </td>
