@@ -5,11 +5,6 @@ export const metadata: Metadata = {
   title: "CSWD Biñan City Portal",
   description: "City Social Welfare and Development Office",
   manifest: "/manifest.json",
-  icons: {
-    icon: "/cswd.png",
-    shortcut: "/cswd.png",
-    apple: "/cswd.png",
-  },
   appleWebApp: {
     capable: true,
     title: "CSWD Biñan",
@@ -26,9 +21,6 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="apple-touch-icon" href="/cswd.png" />
-      </head>
       <body>{children}</body>
     </html>
   );
