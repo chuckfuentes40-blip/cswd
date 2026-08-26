@@ -164,29 +164,34 @@ export default function CSWDApp() {
   };
 
   const fetchAdminUsers = async () => {
-    const { data } = await supabase
-      .from("admin_users")
-      .select("id, username, type_of_client, created_at")
-      .order("id", { ascending: true });
+  const { data, error } = await supabase
+    .from("admin_users")
+    .select("id, username, type_of_client") // Removed created_at
+    .order("id", { ascending: true });
 
-    if (data) setAdminUsers(data);
-  };
+  if (error) {
+    console.error("Error fetching admin users:", error.message);
+    return;
+  }
+
+  if (data) {
+    setAdminUsers(data);
+  }
+};
 
   useEffect(() => {
-    setIsMounted(true);
-    fetchApplications();
-    fetchAnnouncements();
+  setIsMounted(true);
+  fetchApplications();
+  fetchAnnouncements();
+  fetchAdminUsers(); // <-- Always fetch admin users on mount
 
-    const storedIsLoggedIn = localStorage.getItem("cswd_isLoggedIn");
-    const storedAdminType = localStorage.getItem("cswd_adminType");
-    if (storedIsLoggedIn === "true" && storedAdminType) {
-      setIsLoggedIn(true);
-      setAdminType(storedAdminType);
-      if (storedAdminType === "Super Admin") {
-        fetchAdminUsers();
-      }
-    }
-  }, []);
+  const storedIsLoggedIn = localStorage.getItem("cswd_isLoggedIn");
+  const storedAdminType = localStorage.getItem("cswd_adminType");
+  if (storedIsLoggedIn === "true" && storedAdminType) {
+    setIsLoggedIn(true);
+    setAdminType(storedAdminType);
+  }
+}, []);
 
   if (!isMounted) return null;
 
@@ -270,32 +275,37 @@ export default function CSWDApp() {
 
   // Super Admin: Create New Admin Account
   const handleCreateAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newAdminUsername || !newAdminPassword) return;
+  e.preventDefault();
+  if (!newAdminUsername || !newAdminPassword) return;
 
-    setCreateAdminNotification({ type: "loading", msg: "Creating new admin account..." });
-    setLoading(true);
+  setCreateAdminNotification({ type: "loading", msg: "Creating new admin account..." });
+  setLoading(true);
 
-    const { error } = await supabase
-      .from("admin_users")
-      .insert([{ 
-        username: newAdminUsername, 
-        password: newAdminPassword, 
-        type_of_client: newAdminType 
-      }]);
+  const { error } = await supabase
+    .from("admin_users")
+    .insert([{ 
+      username: newAdminUsername, 
+      password: newAdminPassword, 
+      type_of_client: newAdminType 
+    }]);
 
-    setLoading(false);
+  setLoading(false);
 
-    if (!error) {
-      setCreateAdminNotification({ type: "success", msg: `Admin user '${newAdminUsername}' created successfully!` });
-      setNewAdminUsername("");
-      setNewAdminPassword("");
-      setNewAdminType("Solo Parent Admin");
-      fetchAdminUsers();
+  if (!error) {
+    setCreateAdminNotification({ type: "success", msg: `Admin user '${newAdminUsername}' created successfully!` });
+    setNewAdminUsername("");
+    setNewAdminPassword("");
+    setNewAdminType("Solo Parent Admin");
+    fetchAdminUsers();
+  } else {
+    // Handle 409 Conflict (Duplicate username)
+    if (error.code === "23505") {
+      setCreateAdminNotification({ type: "error", msg: `Username '${newAdminUsername}' is already taken.` });
     } else {
       setCreateAdminNotification({ type: "error", msg: "Failed to create account: " + error.message });
     }
-  };
+  }
+};
 
   // Super Admin: Delete Admin Account
   const handleDeleteAdmin = async (id: number) => {
