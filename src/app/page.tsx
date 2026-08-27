@@ -80,8 +80,8 @@ export default function CSWDApp() {
   const [selectedForm, setSelectedForm] = useState<string | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Auth & Admin State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1220,11 +1220,11 @@ const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
       className="min-h-screen bg-cover bg-center bg-fixed flex flex-col font-sans text-gray-800"
       style={{ backgroundImage: `linear-gradient(rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), url('${bgSeal}')` }}
     >
+      {/* PUBLIC NAVBAR WITH MOBILE RESPONSIVE HAMBURGER MENU */}
       <nav className="bg-blue-900 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             
-            {/* Logo & Title Section */}
             <div 
               className="flex items-center space-x-2 sm:space-x-3 cursor-pointer min-w-0" 
               onClick={() => { setActiveTab("HOME"); setSelectedForm(null); }}
@@ -1240,32 +1240,19 @@ const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
               </div>
             </div>
 
-            {/* Desktop Navigation (Hidden on Mobile) */}
+            {/* Desktop Links */}
             <div className="hidden md:flex items-center space-x-4 lg:space-x-6 text-sm">
-              <button 
-                onClick={() => { setActiveTab("HOME"); setSelectedForm(null); }} 
-                className={`hover:text-blue-300 font-medium ${activeTab === "HOME" ? "border-b-2 border-yellow-400 font-bold" : ""}`}
-              >
-                HOME
-              </button>
-
+              <button onClick={() => { setActiveTab("HOME"); setSelectedForm(null); }} className={`hover:text-blue-300 font-medium ${activeTab === "HOME" ? "border-b-2 border-yellow-400 font-bold" : ""}`}>HOME</button>
+              
               <div className="relative">
-                <button 
-                  onClick={() => setDropdownOpen(!dropdownOpen)} 
-                  className={`flex items-center space-x-1 hover:text-blue-300 font-medium ${activeTab === "FORMS" ? "border-b-2 border-yellow-400 font-bold" : ""}`}
-                >
+                <button onClick={() => setDropdownOpen(!dropdownOpen)} className={`flex items-center space-x-1 hover:text-blue-300 font-medium ${activeTab === "FORMS" ? "border-b-2 border-yellow-400 font-bold" : ""}`}>
                   <span>FORMS</span>
                   <ChevronDown className="w-4 h-4" />
                 </button>
-
                 {dropdownOpen && (
                   <div className="absolute top-full left-0 mt-2 w-48 bg-white text-gray-800 shadow-xl rounded-md overflow-hidden z-50 border">
                     {["Solo Parents", "PWD", "Senior Citizen"].map((type) => (
-                      <button 
-                        key={type} 
-                        onClick={() => { setSelectedForm(type); setActiveTab("FORMS"); setDropdownOpen(false); }} 
-                        className="block w-full text-left px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-900 border-b last:border-b-0"
-                      >
+                      <button key={type} onClick={() => { setSelectedForm(type); setActiveTab("FORMS"); setDropdownOpen(false); }} className="block w-full text-left px-4 py-3 text-sm hover:bg-blue-50 hover:text-blue-900 border-b last:border-b-0">
                         {type} Form
                       </button>
                     ))}
@@ -1273,91 +1260,45 @@ const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
                 )}
               </div>
 
-              <button 
-                onClick={() => { setActiveTab("ABOUT US"); setSelectedForm(null); }} 
-                className={`hover:text-blue-300 font-medium ${activeTab === "ABOUT US" ? "border-b-2 border-yellow-400 font-bold" : ""}`}
-              >
-                ABOUT US
-              </button>
-
-              <button 
-                onClick={() => { setActiveTab("CONTACT"); setSelectedForm(null); }} 
-                className={`hover:text-blue-300 font-medium ${activeTab === "CONTACT" ? "border-b-2 border-yellow-400 font-bold" : ""}`}
-              >
-                CONTACT
-              </button>
+              <button onClick={() => { setActiveTab("ABOUT US"); setSelectedForm(null); }} className={`hover:text-blue-300 font-medium ${activeTab === "ABOUT US" ? "border-b-2 border-yellow-400 font-bold" : ""}`}>ABOUT US</button>
+              <button onClick={() => { setActiveTab("CONTACT"); setSelectedForm(null); }} className={`hover:text-blue-300 font-medium ${activeTab === "CONTACT" ? "border-b-2 border-yellow-400 font-bold" : ""}`}>CONTACT</button>
               
-              <button 
-                onClick={() => setActiveTab("LOGIN")}
-                className="bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-bold px-3.5 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm flex items-center space-x-1.5 transition"
-              >
+              <button onClick={() => setActiveTab("LOGIN")} className="bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-bold px-3.5 py-1.5 lg:px-4 lg:py-2 rounded-lg text-xs lg:text-sm flex items-center space-x-1.5 transition">
                 <Lock className="w-4 h-4" />
                 <span>Admin Login</span>
               </button>
             </div>
 
-            {/* Mobile Menu Toggle Button */}
+            {/* Mobile Hamburger Toggle */}
             <div className="flex md:hidden items-center">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-lg text-blue-100 hover:text-white hover:bg-blue-800 focus:outline-none"
-                aria-label="Toggle Navigation"
-              >
+              <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 rounded-lg text-blue-100 hover:text-white hover:bg-blue-800 focus:outline-none">
                 {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
-
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
+        {/* Mobile Expanded Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-blue-950 border-t border-blue-800 px-4 pt-2 pb-4 space-y-2 text-sm">
-            <button 
-              onClick={() => { setActiveTab("HOME"); setSelectedForm(null); setIsMobileMenuOpen(false); }} 
-              className="block w-full text-left py-2 px-3 rounded hover:bg-blue-800 font-medium"
-            >
-              HOME
-            </button>
-
+            <button onClick={() => { setActiveTab("HOME"); setSelectedForm(null); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2 px-3 rounded hover:bg-blue-800 font-medium">HOME</button>
             <div className="space-y-1">
-              <div className="py-2 px-3 text-xs font-bold uppercase tracking-wider text-blue-300">Available Forms</div>
+              <div className="py-1 px-3 text-xs font-bold uppercase text-blue-300">Available Forms</div>
               {["Solo Parents", "PWD", "Senior Citizen"].map((type) => (
-                <button 
-                  key={type} 
-                  onClick={() => { setSelectedForm(type); setActiveTab("FORMS"); setIsMobileMenuOpen(false); }} 
-                  className="block w-full text-left py-2 pl-6 pr-3 rounded hover:bg-blue-800 text-sm"
-                >
+                <button key={type} onClick={() => { setSelectedForm(type); setActiveTab("FORMS"); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2 pl-6 pr-3 rounded hover:bg-blue-800 text-sm">
                   • {type} Form
                 </button>
               ))}
             </div>
-
-            <button 
-              onClick={() => { setActiveTab("ABOUT US"); setSelectedForm(null); setIsMobileMenuOpen(false); }} 
-              className="block w-full text-left py-2 px-3 rounded hover:bg-blue-800 font-medium"
-            >
-              ABOUT US
-            </button>
-
-            <button 
-              onClick={() => { setActiveTab("CONTACT"); setSelectedForm(null); setIsMobileMenuOpen(false); }} 
-              className="block w-full text-left py-2 px-3 rounded hover:bg-blue-800 font-medium"
-            >
-              CONTACT
-            </button>
-
-            <button 
-              onClick={() => { setActiveTab("LOGIN"); setIsMobileMenuOpen(false); }}
-              className="w-full bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center space-x-1.5 transition mt-2"
-            >
+            <button onClick={() => { setActiveTab("ABOUT US"); setSelectedForm(null); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2 px-3 rounded hover:bg-blue-800 font-medium">ABOUT US</button>
+            <button onClick={() => { setActiveTab("CONTACT"); setSelectedForm(null); setIsMobileMenuOpen(false); }} className="block w-full text-left py-2 px-3 rounded hover:bg-blue-800 font-medium">CONTACT</button>
+            <button onClick={() => { setActiveTab("LOGIN"); setIsMobileMenuOpen(false); }} className="w-full bg-yellow-500 hover:bg-yellow-400 text-blue-950 font-bold py-2.5 px-3 rounded-lg text-xs flex items-center justify-center space-x-1.5 transition mt-2">
               <Lock className="w-4 h-4" />
               <span>Admin Login</span>
             </button>
           </div>
         )}
       </nav>
-
       <main className="flex-grow max-w-5xl mx-auto w-full p-6 my-8 bg-white/95 backdrop-blur-sm rounded-xl shadow-md border border-gray-100">
         
         {/* PUBLIC HOME TAB */}
