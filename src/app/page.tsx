@@ -324,23 +324,54 @@ export default function CSWDApp() {
 
   // Submit Public Form
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAppSubmissionNotification({ type: "loading", msg: "Submitting application details to database..." });
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
+  setAppSubmissionNotification(null);
 
-    const payload = { ...formData, status: "Pending" };
-    const { error } = await supabase.from("applications").insert([payload]);
+  try {
+    const targetName = formData.member_name.trim();
 
-    setLoading(false);
+    // 1. Query the database for duplicate names (case-insensitive)
+    const { data: existingRecords, error: checkError } = await supabase
+      .from("solo_parents")
+      .select("id, member_name")
+      .ilike("member_name", targetName);
 
-    if (error) {
-      setAppSubmissionNotification({ type: "error", msg: "Submission error: " + error.message });
-    } else {
-      setAppSubmissionNotification({ type: "success", msg: "Application submitted successfully! It is currently pending admin approval." });
-      fetchApplications();
-      setFormData(initialFormState);
+    if (checkError) throw checkError;
+
+    // 2. Abort submission if a record already exists
+    if (existingRecords && existingRecords.length > 0) {
+      setAppSubmissionNotification({
+        type: "error",
+        msg: "The name has already been saved. Application Rejected.",
+      });
+      setLoading(false);
+      return; // Stop execution without saving
     }
-  };
+
+    // 3. Proceed to save record if name is unique
+    const { error: insertError } = await supabase
+      .from("solo_parents")
+      .insert([formData]);
+
+    if (insertError) throw insertError;
+
+    setAppSubmissionNotification({
+      type: "success",
+      msg: "Application submitted successfully!",
+    });
+
+    // Reset form state using your declared state variable
+    setFormData(initialFormState);
+  } catch (error: any) {
+    setAppSubmissionNotification({
+      type: "error",
+      msg: error.message || "An error occurred during submission.",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Application Approval / Disapproval
   const handleUpdateStatus = async (id: number, newStatus: string) => {
