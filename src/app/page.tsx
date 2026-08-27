@@ -81,6 +81,8 @@ export default function CSWDApp() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
+const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Auth & Admin State
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminType, setAdminType] = useState<string | null>(null);
@@ -417,7 +419,7 @@ export default function CSWDApp() {
       </div>
     );
   };
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
 
   // =========================================================================
   // ADMIN DASHBOARD VIEW
